@@ -1,1 +1,1 @@
-"# sandbox-genie" 
+procgen coinrun generative world model - an implementation of the case study at the end of the genie paper
