@@ -15,14 +15,14 @@ class ResidualStack(nn.Module):
             layers.append(
                 nn.Sequential(
                     nn.ReLU(),
-                    nn.Conv2d(
+                    nn.Conv3d(
                         in_channels=num_hiddens,
                         out_channels=num_residual_hiddens,
                         kernel_size=3,
                         padding=1,
                     ),
                     nn.ReLU(),
-                    nn.Conv2d(
+                    nn.Conv3d(
                         in_channels=num_residual_hiddens,
                         out_channels=num_hiddens,
                         kernel_size=1,
@@ -66,7 +66,8 @@ class Encoder(nn.Module):
 
             conv.add_module(
                 f"down{downsampling_layer}",
-                nn.Conv2d(
+                # for video need conv3d? 
+                nn.Conv3d(
                     in_channels=in_channels,
                     out_channels=out_channels,
                     kernel_size=4,
@@ -78,7 +79,7 @@ class Encoder(nn.Module):
 
         conv.add_module(
             "final_conv",
-            nn.Conv2d(
+            nn.Conv3d(
                 in_channels=num_hiddens,
                 out_channels=num_hiddens,
                 kernel_size=3,
@@ -106,7 +107,7 @@ class Decoder(nn.Module):
     ):
         super().__init__()
         # See Section 4.1 of "Neural Discrete Representation Learning".
-        self.conv = nn.Conv2d(
+        self.conv = nn.Conv3d(
             in_channels=embedding_dim,
             out_channels=num_hiddens,
             kernel_size=3,
@@ -128,7 +129,7 @@ class Decoder(nn.Module):
 
             upconv.add_module(
                 f"up{upsampling_layer}",
-                nn.ConvTranspose2d(
+                nn.ConvTranspose3d(
                     in_channels=in_channels,
                     out_channels=out_channels,
                     kernel_size=4,
@@ -207,6 +208,7 @@ class VectorQuantizer(nn.Module):
             + (self.e_i_ts ** 2).sum(0, keepdim=True)
         )
         encoding_indices = distances.argmin(1)
+
         quantized_x = F.embedding(
             encoding_indices.view(x.shape[0], *x.shape[2:]), self.e_i_ts.transpose(0, 1)
         ).permute(0, 3, 1, 2)
@@ -280,7 +282,7 @@ class VQVAE(nn.Module):
             num_residual_layers,
             num_residual_hiddens,
         )
-        self.pre_vq_conv = nn.Conv2d(
+        self.pre_vq_conv = nn.Conv3d(
             in_channels=num_hiddens, out_channels=embedding_dim, kernel_size=1
         )
         self.vq = VectorQuantizer(
