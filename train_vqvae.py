@@ -7,36 +7,26 @@ from PIL import Image
 from torch import nn, optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
+from torchvision.transforms.functional import to_pil_image
 from torchvision.datasets import CIFAR10
 from vqvae import VQVAE
 from frame_dataset import SequentialFrameDataset
+import os
 
 torch.set_printoptions(linewidth=160)
 
-def save_img_tensors_as_grid(img_tensors, nrows, f):
-    torch.save(img_tensors, "img_tensors.pt")
-    img_tensors = img_tensors.permute(0, 2, 3, 1)
-    imgs_array = img_tensors.detach().cpu().numpy()
-    imgs_array[imgs_array < -0.5] = -0.5
-    imgs_array[imgs_array > 0.5] = 0.5
-    imgs_array = 255 * (imgs_array + 0.5)
-    (batch_size, img_size) = img_tensors.shape[:2]
-    #ncols = batch_size // nrows
-    ncols = 1
-    print("ncols", ncols)
-    print('nrows', nrows)
-    print('bs', batch_size)
-    img_arr = np.zeros((nrows * batch_size, ncols * batch_size, 3))
-    '''for idx in range(batch_size):
-        row_idx = idx // ncols
-        col_idx = idx % ncols
-        row_start = row_idx * img_size
-        row_end = row_start + img_size
-        col_start = col_idx * img_size
-        col_end = col_start + img_size
-        img_arr[row_start:row_end, col_start:col_end] = imgs_array[idx]'''
+def save_img_tensors_as_img(img_tensors, output_dir):
+    it = img_tensors.permute(1, 0, 2, 3)
 
-    Image.fromarray(img_arr.astype(np.uint8), "RGB").save(f"{f}.jpg")
+    for i in range(it.shape[0]):
+        img_it = it[i, :3]
+        
+        img_it = (img_it - img_it.min()) / (img_it.max() - img_it.min())
+        
+        img = to_pil_image(img_it)
+        
+        file_path = os.path.join(output_dir, f"image_{i}.png")
+        img.save(file_path)
 
 def main():
     # Initialize model.
@@ -144,8 +134,8 @@ def main():
         for valid_tensors in valid_loader:
             break
 
-        save_img_tensors_as_grid(valid_tensors[0], 4, "true")
-        save_img_tensors_as_grid(model(valid_tensors[0].to(device))["x_recon"], 4, "recon")
+        save_img_tensors_as_img(valid_tensors[0], "output_imgs\\train")
+        save_img_tensors_as_img(model(valid_tensors[0].to(device))["x_recon"], "output_imgs\\val")
 
     torch.save(model.state_dict(), "model.pth")
 
