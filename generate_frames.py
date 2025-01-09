@@ -3,7 +3,7 @@ from PIL import Image
 import os
 
 def main():
-    n_levels = 10
+    n_levels = 10000
 
     output_dir = "coinrun_frames"
     os.makedirs(output_dir, exist_ok=True)
@@ -20,7 +20,7 @@ def main():
         # Create the environment
         env = gym.make("procgen:procgen-coinrun-v0", render_mode="rgb_array", start_level=i, num_levels=1)
         observation = env.reset()
-        
+
         frame_count = 0
 
         target_size = (128, 128)  # Resize to 128x128 pixels
@@ -42,12 +42,13 @@ def main():
             observation, reward, terminated, truncated = env.step(action)
 
             # Reset if the episode is over
-            if terminated or truncated:
-                observation = env.reset()
+            if terminated:
+                break
+        print("done", i)
 
         # Close the environment
         env.close()
-        print(f"Saved {frame_count} frames in the '{output_dir}' directory.")
+        #print(f"Saved {frame_count} frames in the '{output_dir}' directory.")
 
 if __name__ == "__main__":
     main()

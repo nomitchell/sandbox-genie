@@ -12,8 +12,26 @@ from torchvision.datasets import CIFAR10
 from vqvae import VQVAE
 from frame_dataset import SequentialFrameDataset
 import os
+import torch.profiler
+import torch.utils.bottleneck
 
 torch.set_printoptions(linewidth=160)
+
+def save_checkpoint(model, optimizer, epoch, loss, checkpoint_path="checkpoint.pth"):
+    torch.save({
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'loss': loss,
+    }, checkpoint_path)
+
+'''def load_checkpoint(model, optimizer, checkpoint_path="checkpoint.pth"):
+    checkpoint = torch.load(checkpoint_path)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    epoch = checkpoint['epoch']
+    loss = checkpoint['loss']
+    return model, optimizer, epoch, loss'''
 
 def save_img_tensors_as_img(img_tensors, output_dir):
     it = img_tensors.permute(1, 0, 2, 3)
@@ -79,10 +97,11 @@ def main():
     criterion = nn.MSELoss()
 
     # Train model.
-    epochs = 7
+    epochs = 100
     eval_every = 100
     best_train_loss = float("inf")
     model.train()
+
     for epoch in range(epochs):
         total_train_loss = 0
         total_recon_error = 0
@@ -117,7 +136,7 @@ def main():
                 total_train_loss = 0
                 total_recon_error = 0
                 n_train = 0
-
+            save_checkpoint(model, optimizer, epoch=epoch, loss=loss, checkpoint_path="checkpoint.pth")
     # Generate and save reconstructions.
     model.eval()
 
@@ -134,8 +153,8 @@ def main():
         for valid_tensors in valid_loader:
             break
 
-        save_img_tensors_as_img(valid_tensors[0], "output_imgs\\train")
-        save_img_tensors_as_img(model(valid_tensors[0].to(device))["x_recon"], "output_imgs\\val")
+        save_img_tensors_as_img(valid_tensors[0], "output_imgs/train")
+        save_img_tensors_as_img(model(valid_tensors[0].to(device))["x_recon"], "output_imgs/val")
 
     torch.save(model.state_dict(), "model.pth")
 
