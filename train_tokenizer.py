@@ -1,5 +1,3 @@
-# See: https://github.com/deepmind/sonnet/blob/v2/examples/vqvae_example.ipynb.
-
 import numpy as np
 import torch
 
@@ -8,12 +6,9 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.transforms.functional import to_pil_image
-from torchvision.datasets import CIFAR10
 from vqvae import VQVAE
 from frame_dataset import SequentialFrameDataset
 import os
-import torch.profiler
-import torch.utils.bottleneck
 
 torch.set_printoptions(linewidth=160)
 
@@ -156,7 +151,7 @@ def main():
         save_img_tensors_as_img(valid_tensors[0], "output_imgs/train")
         save_img_tensors_as_img(model(valid_tensors[0].to(device))["x_recon"], "output_imgs/val")
 
-    torch.save(model.state_dict(), "model.pth")
+    torch.save(model.state_dict(), "tokenizer.pth")
 
 if __name__ == "__main__":
     main()

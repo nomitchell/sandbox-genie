@@ -1,8 +1,9 @@
 import os
+import re
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 import torch
-import torchvision.transforms as T
+from torchvision import transforms
 
 class SequentialFrameDataset(Dataset):
     def __init__(self, root_dir, clip_length=16, transform=None):
@@ -26,13 +27,10 @@ class SequentialFrameDataset(Dataset):
         )
 
     def __len__(self):
-        # Number of possible clips
         return len(self.frames) - self.clip_length + 1
 
     def __getitem__(self, idx):
-        # Get paths for the clip
         clip_paths = self.frames[idx : idx + self.clip_length]
-        # Load and transform frames
         frames = [Image.open(p).convert("RGB") for p in clip_paths]
 
         if self.transform:
@@ -43,21 +41,38 @@ class SequentialFrameDataset(Dataset):
         frames = frames.permute(1, 0, 2, 3)  # Shape: (C, T, H, W)
 
         return frames
-'''
-# Parameters
-root_dir = "path/to/frames"  # Folder with all images
-clip_length = 16  # Number of frames per clip
-batch_size = 8  # Number of clips per batch
-transform = T.Compose([
-    T.Resize((128, 128)),  # Resize frames
-    T.ToTensor(),          # Convert to tensors
-])
 
-# Dataset and DataLoader
-dataset = SequentialFrameDataset(root_dir, clip_length, transform)
-dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+class CoinRunDataset(Dataset):
+    def __init__(self, root_dir, seq_len=8, frame_size=(128, 128)):
+        self.root_dir = root_dir
+        self.seq_len = seq_len
+        self.frame_size = frame_size
+        self.transform = transforms.Compose([
+            transforms.Resize(frame_size),
+            transforms.ToTensor(),
+        ])
+        self.sequences = []
+        pattern = re.compile(r"frame_(\d+)_(\d+)\.png")
+        self.episodes = {}
+        for fname in os.listdir(root_dir):
+            m = pattern.match(fname)
+            if m:
+                ep, fr = int(m.group(1)), int(m.group(2))
+                self.episodes.setdefault(ep, []).append((fr, fname))
+        for ep in self.episodes:
+            frames = sorted(self.episodes[ep], key=lambda x: x[0])
+            for start in range(len(frames) - self.seq_len):
+                # Input: seq_len frames, Target: start + seq_len frame
+                self.sequences.append((ep, start))
+    
+    def __len__(self):
+        return len(self.sequences)
 
-# Example: Iterate through the DataLoader
-for batch in dataloader:
-    print(batch.shape)  # (B, C, T, H, W) where B=batch_size
-    break'''
+    def __getitem__(self, idx):
+        ep, start = self.sequences[idx]
+        input_frames = self.episodes[ep][start:start + self.seq_len + 1]
+        #target_frame = self.episodes[ep][start + self.seq_len]
+        # Load and transform frames
+        input_imgs = [self.transform(Image.open(os.path.join(self.root_dir, f[1]))) for f in input_frames]
+        #target_img = self.transform(Image.open(os.path.join(self.root_dir, target_frame[1])))
+        return torch.stack(input_imgs) #, target_img
