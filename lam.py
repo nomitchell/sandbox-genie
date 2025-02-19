@@ -89,7 +89,8 @@ class LatentActionModel(nn.Module):
         indices = torch.argmin(distances, dim=-1)    # shape: [B]
         z_q = self.codebook(indices)
         z_q = z_q.detach() + (z_e_proj - z_e_proj.detach())
-        z_q_reshaped = z_q.view(z_q.size(0), self.config['latent_dim'], 8, 4).permute(1,0,2,3)
+        #z_q_reshaped = z_q.view(z_q.size(0), self.config['latent_dim'], 8, 4).permute(1,0,2,3)
+        z_q_reshaped = z_q.view(z_q.size(0), self.config['latent_dim'], 8, 4, 1)
 
         recon = self.decoder(z_q_reshaped)
         return recon, z_e_proj
