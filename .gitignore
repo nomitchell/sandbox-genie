@@ -1,0 +1,8 @@
+visualizations/
+checkpoints/
+generated_frames/
+val_coinrun_frames/
+coinrun_frames/
+__pycache__/
+
+
